@@ -36,6 +36,30 @@ vg.Board.prototype = {
 		tile.entity = entity;
 	},
 
+  setEntityOnTileWithOffset: function(entity, tile, xOffset, zOffset) {
+
+	  console.log('setEntityWithOffset')
+    // snap an entity's position to a tile; merely copies position
+    var pos = this.grid.cellToPixel(tile.cell);
+    entity.position.copy(pos);
+    // adjust for any offset after the entity was set directly onto the tile
+    entity.position.y += entity.heightOffset || 0;
+    entity.position.x += xOffset || 0;
+    entity.position.z += zOffset || 0;
+
+    console.log("entity.position.x: ", entity.position.x);
+    console.log("entity.position.y: ", entity.position.y);
+    console.log("entity.position.z: ", entity.position.z);
+
+    // remove entity from old tile
+    if (entity.tile) {
+      entity.tile.entity = null;
+    }
+    // set new situation
+    entity.tile = tile;
+    tile.entity = entity;
+  },
+
 	addTile: function(tile) {
 		var i = this.tiles.indexOf(tile);
 		if (i === -1) this.tiles.push(tile);

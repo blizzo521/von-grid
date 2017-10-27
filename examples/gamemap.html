@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+	<meta name="author" content="Corey Birnbaum" />
+	<title>Grid</title>
+
+	<link href="css/normalize.css" rel="stylesheet" type="text/css"/>
+	<style>
+		body {
+			overflow: hidden;
+		}
+		#view {
+			position: absolute;
+			top: 0;
+			left: 0;
+		}
+    .tile_editor {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 130px;
+      background-color: #eeeeee;
+      z-index: 1;
+    }
+    .container {
+      display: flex;
+      flex-direction: row;
+    }
+    .column {
+      margin-right: 20px;
+    }
+    #mapJSON {
+      width: 300px;
+      height: 90px;
+    }
+	</style>
+</head>
+
+<body>
+
+
+<div id='tile_editor' class="tile_editor">
+  <div class='container'>
+    <div class='column'>
+      <label for='terrain'>Terrain: </label>
+      <select id='terrain' name="terrain" onChange='updateTerrain()'>
+        <option>Select One</option>
+        <option value="forest">Forest</option>
+        <option value="farm">Farm</option>
+        <option value="hills">Hills</option>
+      </select>
+
+      <hr />
+
+      <label for="city">City</label>
+      <input type="text" id="city" name='city' onChange='updateCity()' />
+      <br />
+      <label for='cityPosition'>Position: </label>
+      <select id='cityPosition' name="cityPosition" onChange='updateCityPosition()'>
+        <option>Select One</option>
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+      </select>
+    </div>
+    <div class='column'>
+      <textarea id="mapJSON"></textarea>
+      <br />
+      <button onClick="resetFromMap()">Reset From Map</button>
+      <button onClick="updateMap()">Update Map</button>
+    </div>
+  </div>
+
+
+
+</div>
+
+
+	<div id="view"></div>
+
+	<script type="text/javascript" src="../lib/three.min.js"></script>
+	<script type="text/javascript" src="../lib/OrbitControls.js"></script>
+	<script type="text/javascript" src="../dist/hex-grid.min.js"></script>
+  <script type="text/javascript" src="js/Sprite.js"></script>
+	<script type="text/javascript">
+  var editor = document.getElementById('tile_editor');
+  var jsonEditor = document.getElementById('mapJSON');
+  var currentTile;
+  var scene;
+  var grid;
+  var board;
+  var mouse;
+  var terrainName = {
+    'forest': 1,
+    'farm': 2,
+    'hills': 3
+  };
+  var terrainIndex = {
+    1: 'forest',
+    2: 'farm',
+    3: 'hills'
+  };
+
+  function setCurrentTile() {
+    var cell = grid.getCellAt(mouse.position);
+    var cellData = grid.getCellAt(mouse.position).userData;
+    var terrain = cellData.terrain;
+    var cityData = cellData.city || {};
+
+		currentTile =  board.getTileAtCell(cell);
+
+    editor.querySelector('[name="terrain"]').selectedIndex = terrainName[terrain];
+    editor.querySelector('[name="cityPosition"]').selectedIndex = cityData.position ? cityData.position : null;
+    editor.querySelector('[name="city"]').value = cityData.name ? cityData.name : '';
+  }
+
+  function updateTerrain() {
+    currentTile.setTerrain(terrainIndex[editor.querySelector('[name="terrain"]').selectedIndex]);
+  }
+
+  function updateCity() {
+    var cityName = editor.querySelector('[name="city"]').value;
+    if (cityName) {
+      currentTile.setCity(cityName);
+    }
+  }
+
+  function updateCityPosition() {
+    var cityPositionSelector = editor.querySelector('[name="cityPosition"]');
+    var cityPosition = cityPositionSelector.selectedIndex;
+
+    if (cityPosition > 0) {
+      currentTile.setCityPosition(cityPosition);
+    }
+  }
+
+  function updateMap() {
+    grid.fromJSON(JSON.parse(jsonEditor.value));
+    board.setGrid(grid);
+    board.generateTilemap();
+  }
+
+  function resetFromMap() {
+    jsonEditor.value = JSON.stringify(grid.toJSON());
+  }
+
+  window.addEventListener('load', function(evt) {
+
+		scene = new vg.Scene({
+			element: document.getElementById('view'),
+			cameraPosition: {x:0, y:150, z:150}
+		}, true);
+
+		// this constructs the cells in grid coordinate space
+		grid = new vg.HexGrid({
+			cellSize: 11 // size of individual cells
+		});
+
+		grid.generate({
+			size: 1 // size of the board
+		});
+
+		mouse = new vg.MouseCaster(scene.container, scene.camera, document.getElementById('view'));
+    board = new vg.Board(grid);
+
+		// this will generate extruded hexagonal tiles
+		board.generateTilemap({
+			tileScale: 0.96 // you might have to scale the tile so the extruded geometry fits the cell size perfectly
+		});
+
+		scene.add(board.group);
+		scene.focusOn(board.group);
+
+		var vec = new THREE.Vector3();
+
+		mouse.signal.add(function(evt, tile) {
+			if (evt === vg.MouseCaster.CLICK) {
+			  setCurrentTile();
+			}
+		}, this);
+
+		update();
+
+		function update() {
+			mouse.update();
+			scene.render();
+			requestAnimationFrame(update);
+		}
+	});
+	</script>
+
+
+</body>
+</html>

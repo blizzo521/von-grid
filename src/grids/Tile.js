@@ -54,6 +54,8 @@ vg.Tile = function(config) {
 	else {
 		this._emissive = null;
 	}
+
+	this.customizeTile();
 };
 
 vg.Tile.prototype = {
@@ -82,6 +84,90 @@ vg.Tile.prototype = {
 		}
 		return this;
 	},
+
+  customizeTile: function() {
+    this.updateTerrain();
+    this.updateCity();
+  },
+
+
+  // setters
+  setTerrain: function(terrain) {
+	  this.cell.userData.terrain = terrain;
+	  this.customizeTile();
+  },
+
+  setCity: function(name) {
+    this.cell.userData.city = this.cell.userData.city || {};
+    this.cell.userData.city.name = name;
+    this.customizeTile();
+  },
+
+  setCityPosition: function(position) {
+    this.cell.userData.city = this.cell.userData.city || {};
+    this.cell.userData.city.position = position;
+    this.customizeTile();
+  },
+
+  // customizers
+  updateTerrain: function() {
+	  var terrain = this.cell.userData.terrain;
+    var colorString = "rgb(30, 30, 30)";
+
+    if(terrain === "forest") {
+      colorString = "rgb(89, 160, 72)";
+    } else if(terrain === "farm") {
+      colorString = "rgb(237, 208, 23)";
+    } else if(terrain === "hills") {
+      colorString = "rgb(183, 160, 115)";
+    }
+
+    this.material.color = new THREE.Color( colorString );
+  },
+
+  updateCity: function() {
+    var city = this.cell.userData.city;
+    if (city && city.name && city.name.length > 0) {
+      var spriteConfig = {
+        container: board.group,
+        url: '../examples/img/water.png',
+        scale: 3,
+        heightOffset: 2
+      };
+
+      this.sprite = this.sprite || new Sprite(spriteConfig);
+      this.sprite.activate(0, 3, 0);
+
+      var xOffset = 0;
+      var zOffset = 0;
+
+      if (city && city.position) {
+        if (city.position === 1) {
+          xOffset = 5;
+          zOffset = -9;
+        } else if (city.position === 2) {
+          xOffset = 10;
+          zOffset = 0;
+        } else if (city.position === 3) {
+          xOffset = 5;
+          zOffset = 9;
+        } else if (city.position === 4) {
+          xOffset = -5;
+          zOffset = 9;
+        } else if (city.position === 5) {
+          xOffset = -10;
+          zOffset = 0;
+        } else if (city.position === 6) {
+          xOffset = -5;
+          zOffset = -9;
+        }
+      }
+
+      console.log("xOffset: ", xOffset);
+      console.log("zOffset: ", zOffset);
+      board.setEntityOnTileWithOffset(this.sprite, this, xOffset, zOffset);
+    }
+  },
 
 	dispose: function() {
 		if (this.cell && this.cell.tile) this.cell.tile = null;
